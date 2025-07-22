@@ -46,8 +46,8 @@ void loop() {
     Read_RawValue(MPU6050SlaveAddress);
 
     char msg[48];
-    //int len = snprintf(msg, sizeof(msg), "%lu;%.3f;%.3f;%.3f;\n", cycle, AccelX, AccelY, AccelZ);
-    int len = snprintf(msg, sizeof(msg), "%lu;%.3f;\n", cycle, AccelX);
+    int len = snprintf(msg, sizeof(msg), "%lu;%.3f;%.3f;%.3f;\n", cycle, AccelX, AccelY, AccelZ);
+    //int len = snprintf(msg, sizeof(msg), "%lu;%.3f;\n", cycle, AccelX);
     webSocket.sendTXT(0, msg, len);
 
     delay(100); // 100Hz, à ajuster
