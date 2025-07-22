@@ -79,7 +79,9 @@ let chartData = {
     {label: 'B', data: [], borderColor:'#43a047', borderWidth:2, pointRadius:0, fill:false},
   ]
 };
-let maxPoints = 150;
+let fullData = { labels: [], datasets: [[], [], []] };
+const MAX_RECORDING_POINTS = 10000; // limit to avoid excessive memory use
+let maxDisplayPoints = 150; // points kept visible during acquisition
 let selectedAxes = "XYZ";
 const LSB_TO_G = 1/16384;
 
@@ -146,15 +148,24 @@ function connectWS() {
   };
 }
 function addData(t, values) {
-  chartData.labels.push(t);
+  if (fullData.labels.length >= MAX_RECORDING_POINTS) {
+    fullData.labels.shift();
+    for (let i = 0; i < 3; i++) fullData.datasets[i].shift();
+  }
+  fullData.labels.push(t);
   let map = {X:null, Y:null, Z:null};
   for(let i=0;i<selectedAxes.length;i++) {
     map[selectedAxes[i]] = values[i] * LSB_TO_G;
   }
+  fullData.datasets[0].push(map.X);
+  fullData.datasets[1].push(map.Y);
+  fullData.datasets[2].push(map.Z);
+
+  chartData.labels.push(t);
   chartData.datasets[0].data.push(map.X);
   chartData.datasets[1].data.push(map.Y);
   chartData.datasets[2].data.push(map.Z);
-  if (chartData.labels.length > maxPoints) {
+  if (chartData.labels.length > maxDisplayPoints) {
     chartData.labels.shift();
     for (let i = 0; i < 3; i++) {
       chartData.datasets[i].data.shift();
@@ -197,6 +208,14 @@ function updateTimeResult() {
     document.getElementById('dist1600').textContent = "";
     document.getElementById('dist2000').textContent = "";
   }
+}
+
+function showFullData() {
+  chartData.labels = fullData.labels.slice();
+  for (let i = 0; i < 3; i++) {
+    chartData.datasets[i].data = fullData.datasets[i].slice();
+  }
+  scheduleChartUpdate();
 }
 
 window.onload = function() {
@@ -261,6 +280,10 @@ window.onload = function() {
     chartData.datasets[0].hidden = !cbX.checked;
     chartData.datasets[1].hidden = !cbY.checked;
     chartData.datasets[2].hidden = !cbZ.checked;
+    fullData.labels = [];
+    fullData.datasets = [[], [], []];
+    chartData.labels = [];
+    chartData.datasets.forEach(d => d.data = []);
     // Efface curseurs/mesure
     cursorA = null; cursorB = null; draggingCursor = null;
     updateAnnotations(); updateTimeResult();
@@ -270,7 +293,7 @@ window.onload = function() {
     this.disabled = true;
     document.getElementById('startBtn').disabled = false;
     // Place les curseurs automatiquement sur les extrémités après arrêt
-    setTimeout(setCursorsToExtremes, 400); // délai pour laisser finir la réception
+    setTimeout(() => { showFullData(); setCursorsToExtremes(); }, 400); // délai pour laisser finir la réception
   };
   document.getElementById('servo45Btn').onclick = function() {
     ws && ws.send('servo:45');
