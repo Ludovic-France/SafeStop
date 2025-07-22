@@ -65,6 +65,7 @@ let chartData = {
 };
 let maxPoints = 150;
 let selectedAxes = "XYZ";
+const LSB_TO_G = 1/16384;
 
 // ==== Curseurs de sélection ====
 let cursorA = null, cursorB = null;
@@ -119,7 +120,7 @@ function addData(t, values) {
   chartData.labels.push(t);
   let map = {X:null, Y:null, Z:null};
   for(let i=0;i<selectedAxes.length;i++) {
-    map[selectedAxes[i]] = values[i] / 16384;
+    map[selectedAxes[i]] = values[i] * LSB_TO_G;
   }
   chartData.datasets[0].data.push(map.X);
   chartData.datasets[1].data.push(map.Y);
