@@ -42,12 +42,15 @@
 			<button id="servo0Btn">Servo 0&deg;</button>
 			<label>Trim: <input type="range" id="trimSlider" min="-30" max="30" value="0" step="1"><span id="trimVal">0&deg;</span></label>
 		  </div>
+		  <div id="dist1600" style="margin-top:8px; font-size:1.1em; color:#1976d2;"></div>
+		  <div id="dist2000" style="font-size:1.1em; color:#1976d2;"></div>
     </div>
     <div id="chart-container">
       <canvas id="accChart" ></canvas>
 	  <div id="time-result" style="margin-top:18px; font-size:1.15em; font-weight:500; color:#1976d2;">
 		Sélectionnez deux points sur le graphique pour mesurer le temps.
 	  </div>
+
     </div>
   </div>
 
@@ -171,8 +174,14 @@ function updateTimeResult() {
     let dt = Math.abs(t2 - t1);
     document.getElementById('time-result').textContent =
       "Δt entre A et B : " + formatDuration(dt);
+    document.getElementById('dist1600').textContent =
+      "Distance à 1600 m/s : " + (dt * 1.6 ).toFixed(0) + " cm";
+    document.getElementById('dist2000').textContent =
+      "Distance à 2000 m/s : " + (dt * 2).toFixed(0) + " cm";
   } else {
     document.getElementById('time-result').textContent = "Sélectionnez deux points sur le graphique.";
+    document.getElementById('dist1600').textContent = "";
+    document.getElementById('dist2000').textContent = "";
   }
 }
 
