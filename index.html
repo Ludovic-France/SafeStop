@@ -8,52 +8,57 @@
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
+    html, body { height: 100%; }
     body { font-family: 'Roboto', sans-serif; background: #f5f5f7; color: #222; margin: 0; }
-    header { background: #1976d2; color: #fff; padding: 16px; font-size: 1.2em; display: flex; align-items: center; justify-content: center;}
-    .container { display: flex; flex-direction: column; align-items: center; margin: 28px 0;}
-    .controls { display: flex; gap: 16px; margin-bottom: 22px;}
-    .servo-controls label { display:flex; align-items:center; gap:8px; height: 40px; padding: auto;}
-    button { padding: auto; font-size: 1.1em; height: 40px; background: #1976d2; color: #fff; border: none; border-radius: 25px; cursor: pointer; transition: background .2s; box-shadow: 0 2px 4px rgba(0,0,0,0.07);}
+    header { background: #1976d2; color: #fff; padding: 16px; font-size: 1.2em; display: flex; align-items: center; justify-content: space-between; }
+    .container { display: flex; flex-direction: row; align-items: flex-start; margin: 28px 0; width: 100%; }
+    #sidebar { display: flex; flex-direction: column; gap: 16px; flex-basis: 260px; }
+    #sidebar button { width: 100%; }
+    .controls { display: flex; gap: 16px; margin-bottom: 22px; }
+    .servo-controls label { display:flex; align-items:center; gap:8px; height: 40px; padding: auto; }
+    button { padding: auto; font-size: 1.1em; height: 40px; background: #1976d2; color: #fff; border: none; border-radius: 25px; cursor: pointer; transition: background .2s; box-shadow: 0 2px 4px rgba(0,0,0,0.07); }
     button:active, button:focus { background: #0d47a1; outline: none;}
-    #status { display: flex; align-items: center; gap: 8px; font-size: 1em; margin-bottom: 16px;}
+    #status { display: flex; align-items: center; gap: 8px; font-size: 1em; }
     #status .material-icons { font-size: 1.2em;}
-    #chart-container { width: 98vw; max-width: 1280px; min-width: 300px; max-height: 680px; background: #fff; border-radius: 15px; box-shadow: 0 4px 18px rgba(25,118,210,.08); padding: 16px;}
-	#accChart {width: 100%; height: 100%; }
+    #results { margin: 16px; color: #1976d2; font-size: 1.1em; }
+    #time-result { margin-bottom: 8px; font-weight: 500; font-size: 1.15em; }
+    #chart-container { flex-grow: 1; background: #fff; border-radius: 15px; box-shadow: 0 4px 18px rgba(25,118,210,.08); padding: 16px; height: calc(100vh - 220px); }
+        #accChart { width: 100%; height: 100%; }
   </style>
 </head>
 <body>
   <header>
     <span class="material-icons">sensors</span>
     &nbsp;Accéléromètre ESP8266 - Temps d'Arrêt
-  </header>
-  <div class="container">
     <div id="status">
       <span class="material-icons" id="status-icon">sync</span>
       <span id="status-text">Connexion...</span>
     </div>
-    <div class="controls">
-		  <label><input type="checkbox" id="cbX" checked> X</label>
-		  <label><input type="checkbox" id="cbY" checked> Y</label>
-		  <label><input type="checkbox" id="cbZ" checked> Z</label>
-		  <button id="startBtn"><span class="material-icons">play_arrow</span> Démarrer</button>
-		  <button id="stopBtn" disabled><span class="material-icons">stop</span> Arrêter</button>
-		  <div class="controls servo-controls">
-			<button id="servo45Btn">Servo 45&deg;</button>
-			<button id="servo0Btn">Servo 0&deg;</button>
-			<label>Trim: <input type="range" id="trimSlider" min="-30" max="30" value="0" step="1"><span id="trimVal">0&deg;</span></label>
-		  </div>
-		  <div id="dist1600" style="margin-top:8px; font-size:1.1em; color:#1976d2;"></div>
-		  <div id="dist2000" style="font-size:1.1em; color:#1976d2;"></div>
+  </header>
+  <div id="results">
+    <div id="time-result">Sélectionnez deux points sur le graphique pour mesurer le temps.</div>
+    <div id="dist1600"></div>
+    <div id="dist2000"></div>
+  </div>
+  <div class="container">
+    <div id="sidebar">
+      <div class="controls">
+        <label><input type="checkbox" id="cbX" checked> X</label>
+        <label><input type="checkbox" id="cbY" checked> Y</label>
+        <label><input type="checkbox" id="cbZ" checked> Z</label>
+        <button id="startBtn"><span class="material-icons">play_arrow</span> Démarrer</button>
+        <button id="stopBtn" disabled><span class="material-icons">stop</span> Arrêter</button>
+      </div>
+      <div class="controls servo-controls">
+        <button id="servo45Btn">Servo 45&deg;</button>
+        <button id="servo0Btn">Servo 0&deg;</button>
+        <label>Trim: <input type="range" id="trimSlider" min="-30" max="30" value="0" step="1"><span id="trimVal">0&deg;</span></label>
+      </div>
     </div>
     <div id="chart-container">
       <canvas id="accChart" ></canvas>
-	  <div id="time-result" style="margin-top:18px; font-size:1.15em; font-weight:500; color:#1976d2;">
-		Sélectionnez deux points sur le graphique pour mesurer le temps.
-	  </div>
-
     </div>
   </div>
-
 <script>
 let ws;
 let chartData = {
