@@ -8,6 +8,9 @@
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@4.1.1"></script>
+  <script> 
+	Chart.register(window['chartjs-plugin-annotation']); 
+  </script>
   <style>
     body { font-family: 'Roboto', sans-serif; background: #f5f5f7; color: #222; margin: 0; }
     header { background: #1976d2; color: #fff; padding: 16px; font-size: 1.2em; display: flex; align-items: center; justify-content: center;}
@@ -142,8 +145,10 @@ function setCursorsToExtremes() {
 function updateAnnotations() {
   accChart.options.plugins.annotation.annotations = {};
   if (cursorA !== null) {
-accChart.options.plugins.annotation.annotations.cursorA = {
+    accChart.options.plugins.annotation.annotations.cursorA = {
       type: 'line',
+      xScaleID: 'x',
+      yScaleID: 'y',
       xMin: cursorA,
       xMax: cursorA,
       yMin: accChart.scales.y.min,
@@ -161,6 +166,8 @@ accChart.options.plugins.annotation.annotations.cursorA = {
   if (cursorB !== null) {
     accChart.options.plugins.annotation.annotations.cursorB = {
       type: 'line',
+      xScaleID: 'x',
+      yScaleID: 'y',
       xMin: cursorB,
       xMax: cursorB,
       yMin: accChart.scales.y.min,
