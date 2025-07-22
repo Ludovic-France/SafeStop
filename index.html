@@ -7,6 +7,7 @@
   <link href="https://fonts.googleapis.com/css?family=Roboto:400,700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom"></script>
   <style>
     html, body { height: 100%; }
     body { font-family: 'Roboto', sans-serif; background: #f5f5f7; color: #222; margin: 0; }
@@ -83,6 +84,7 @@ let selectedAxes = "XYZ";
 const LSB_TO_G = 1/16384;
 
 let accChart;
+Chart.register(ChartZoom);
 let updateScheduled = false;
 function scheduleChartUpdate() {
   if (!updateScheduled) {
@@ -213,6 +215,17 @@ window.onload = function() {
           position:'top',
           labels: {
             filter: (item) => item.text !== 'A' && item.text !== 'B'
+          }
+        },
+        zoom: {
+          pan: {
+            enabled: true,
+            mode: 'x'
+          },
+          zoom: {
+            wheel: { enabled: true },
+            drag: { enabled: true },
+            mode: 'x'
           }
         }
       },
