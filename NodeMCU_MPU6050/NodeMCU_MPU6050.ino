@@ -1,6 +1,7 @@
 #include <ESP8266WiFi.h>
 #include <WebSocketsServer.h>
 #include <Wire.h>
+#include <Servo.h>
 
 // ==== Réseau ====
 const char* ssid = "ESP-ACC";
@@ -15,6 +16,12 @@ unsigned long OffsetT = 0;
 volatile bool START = false;
 const unsigned long SAMPLE_INTERVAL = 10; // 10 ms interval (100 Hz)
 unsigned long lastSampleTime = 0;
+bool sendX = true, sendY = true, sendZ = true;
+
+// ==== Servo ====
+Servo myServo;
+const int SERVO_PIN = D5;
+int trimOffset = 0;
 
 // ==== Déclencheur physique ====
 //#define PIN_START  D2   // Décommente si tu as un bouton/barrière sur une broche
@@ -29,6 +36,10 @@ void setup() {
   // WebSocket
   webSocket.begin();
   webSocket.onEvent(webSocketEvent);
+
+  // Servo
+  myServo.attach(SERVO_PIN);
+  myServo.write(0);
 
   // MPU6050 I2C init
   Wire.begin();
@@ -50,9 +61,12 @@ void loop() {
       unsigned long cycle = now - OffsetT;
       Read_RawValue(MPU6050SlaveAddress);
 
-      char msg[48];
-      int len = snprintf(msg, sizeof(msg), "%lu;%.3f;%.3f;%.3f;\n", cycle, AccelX, AccelY, AccelZ);
-      //int len = snprintf(msg, sizeof(msg), "%lu;%.3f;\n", cycle, AccelX);
+        char msg[64];
+      int len = snprintf(msg, sizeof(msg), "%lu;", cycle);
+      if(sendX) len += snprintf(msg+len, sizeof(msg)-len, "%.3f;", AccelX);
+      if(sendY) len += snprintf(msg+len, sizeof(msg)-len, "%.3f;", AccelY);
+      if(sendZ) len += snprintf(msg+len, sizeof(msg)-len, "%.3f;", AccelZ);
+      len += snprintf(msg+len, sizeof(msg)-len, "\n");
       webSocket.sendTXT(0, msg, len);
     }
   }
@@ -67,7 +81,16 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length
     String msg = String((char*)payload);
     msg.trim();
     Serial.print("Recu WS: "); Serial.println(msg);
-    if(msg == "start"){
+    if(msg.startsWith("start")){
+      sendX = sendY = sendZ = false;
+      if(msg.startsWith("start:")){
+        String axes = msg.substring(6);
+        if(axes.indexOf('X') >= 0) sendX = true;
+        if(axes.indexOf('Y') >= 0) sendY = true;
+        if(axes.indexOf('Z') >= 0) sendZ = true;
+      } else {
+        sendX = sendY = sendZ = true;
+      }
       START = true;
       OffsetT = millis();
       Serial.println("DEBUT MESURE");
@@ -75,6 +98,13 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length
     else if(msg == "stop"){
       START = false;
       Serial.println("ARRET MESURE");
+    }
+    else if(msg.startsWith("servo:")){
+      int angle = msg.substring(6).toInt();
+      myServo.write(angle + trimOffset);
+    }
+    else if(msg.startsWith("trim:")){
+      trimOffset = msg.substring(5).toInt();
     }
   }
 }
