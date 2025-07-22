@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Accéléromètre ESP8266</title>
+  <title>Mesure temps d'arrêt</title>
   <link href="https://fonts.googleapis.com/css?family=Roboto:400,700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -27,7 +27,9 @@
     #results { margin: 16px; color: #1976d2; font-size: 1.1em; }
     #time-result { margin-bottom: 8px; font-weight: 500; font-size: 1.15em; }
     #chart-container { flex-grow: 1; background: #fff; border-radius: 15px; box-shadow: 0 4px 18px rgba(25,118,210,.08); padding: 16px; height: calc(100vh - 220px); }
-        #accChart { width: 100%; height: 100%; }
+    #accChart { width: 100%; height: 100%; }
+    .marker-set label { display:flex; flex-direction:column; font-size:0.9em; }
+    .marker-set input { width:100px; }
   </style>
 </head>
 <body>
@@ -62,6 +64,10 @@
         <button id="servo0Btn">0&deg;</button>
         <label>Trim: <input type="range" id="trimSlider" min="-30" max="30" value="0" step="1"><span id="trimVal">0&deg;</span></label>
       </div>
+      <div class="controls marker-set">
+        <label>A: <input type="number" id="cursorAInput"></label>
+        <label>B: <input type="number" id="cursorBInput"></label>
+      </div>
     </div>
     <div id="chart-container">
       <canvas id="accChart" ></canvas>
@@ -88,6 +94,7 @@ const LSB_TO_G = 1/16384;
 let accChart;
 Chart.register(ChartZoom);
 let updateScheduled = false;
+let userMoved = false;
 function scheduleChartUpdate() {
   if (!updateScheduled) {
     updateScheduled = true;
@@ -101,6 +108,7 @@ function scheduleChartUpdate() {
 // ==== Curseurs de sélection ====
 let cursorA = null, cursorB = null;
 let draggingCursor = null; // 'A' ou 'B'
+let cursorAInput, cursorBInput;
 
 function formatDuration(ms) {
   if (ms < 1000) return ms + " ms";
@@ -165,10 +173,19 @@ function addData(t, values) {
   chartData.datasets[0].data.push(map.X);
   chartData.datasets[1].data.push(map.Y);
   chartData.datasets[2].data.push(map.Z);
-  if (chartData.labels.length > maxDisplayPoints) {
+  if (chartData.labels.length > MAX_RECORDING_POINTS) {
     chartData.labels.shift();
-    for (let i = 0; i < 3; i++) {
-      chartData.datasets[i].data.shift();
+    for (let i = 0; i < 3; i++) chartData.datasets[i].data.shift();
+  }
+  const len = chartData.labels.length;
+  const labels = chartData.labels;
+  if (!userMoved) {
+    if (len > maxDisplayPoints) {
+      accChart.options.scales.x.min = labels[len - maxDisplayPoints];
+      accChart.options.scales.x.max = labels[len - 1];
+    } else if (len > 0) {
+      accChart.options.scales.x.min = labels[0];
+      accChart.options.scales.x.max = labels[len - 1];
     }
   }
   scheduleChartUpdate();
@@ -190,6 +207,8 @@ function updateAnnotations() {
   const bDataset = accChart.data.datasets[4];
   aDataset.data = cursorA !== null ? [{x: cursorA, y: yMin}, {x: cursorA, y: yMax}] : [];
   bDataset.data = cursorB !== null ? [{x: cursorB, y: yMin}, {x: cursorB, y: yMax}] : [];
+  if(cursorAInput) cursorAInput.value = cursorA !== null ? cursorA : '';
+  if(cursorBInput) cursorBInput.value = cursorB !== null ? cursorB : '';
   accChart.update();
 }
 
@@ -215,10 +234,18 @@ function showFullData() {
   for (let i = 0; i < 3; i++) {
     chartData.datasets[i].data = fullData.datasets[i].slice();
   }
+  if (chartData.labels.length > 0) {
+    const labels = chartData.labels;
+    accChart.options.scales.x.min = labels[0];
+    accChart.options.scales.x.max = labels[labels.length-1];
+  }
+  userMoved = false;
   scheduleChartUpdate();
 }
 
 window.onload = function() {
+  cursorAInput = document.getElementById('cursorAInput');
+  cursorBInput = document.getElementById('cursorBInput');
   accChart = new Chart(document.getElementById('accChart'), {
     type: 'line',
     data: chartData,
@@ -239,12 +266,14 @@ window.onload = function() {
         zoom: {
           pan: {
             enabled: true,
-            mode: 'x'
+            mode: 'x',
+            onPan: () => { userMoved = true; }
           },
           zoom: {
             wheel: { enabled: true },
             drag: { enabled: true },
-            mode: 'x'
+            mode: 'x',
+            onZoom: () => { userMoved = true; }
           }
         }
       },
@@ -286,6 +315,7 @@ window.onload = function() {
     chartData.datasets.forEach(d => d.data = []);
     // Efface curseurs/mesure
     cursorA = null; cursorB = null; draggingCursor = null;
+    userMoved = false;
     updateAnnotations(); updateTimeResult();
   };
   document.getElementById('stopBtn').onclick = function() {
@@ -306,6 +336,18 @@ window.onload = function() {
   trimSlider.oninput = function() {
     trimVal.textContent = this.value + '\u00b0';
     ws && ws.send('trim:' + this.value);
+  };
+  cursorAInput.onchange = function(){
+    if(this.value!=="") cursorA = Number(this.value);
+    else cursorA = null;
+    updateAnnotations();
+    updateTimeResult();
+  };
+  cursorBInput.onchange = function(){
+    if(this.value!=="") cursorB = Number(this.value);
+    else cursorB = null;
+    updateAnnotations();
+    updateTimeResult();
   };
 };
 
