@@ -17,10 +17,9 @@
     #sidebar button { width: 100%; }
     .controls { display: flex; gap: 16px; margin-bottom: 22px; }
     .axis-controls { display:flex; gap:16px; }
-    .button-column,
-    .servo-controls { display:flex; flex-direction:column; gap:16px; }
-    .servo-controls label { display:flex; align-items:center; gap:8px; height: 40px; padding: auto; }
-    button { padding: auto; font-size: 1.1em; height: 40px; background: #1976d2; color: #fff; border: none; border-radius: 25px; cursor: pointer; transition: background .2s; box-shadow: 0 2px 4px rgba(0,0,0,0.07); }
+    .button-column, .servo-controls { display:flex; flex-direction:column; gap:16px; width : 30%;}
+    .servo-controls label {  display:flex; align-items:center; gap:8px; padding: auto; }
+    button { font-size: 1.1em; height: 40px; background: #1976d2; color: #fff; border: none; border-radius: 20px; cursor: pointer; transition: background .2s; box-shadow: 0 2px 4px rgba(0,0,0,0.07); }
     button:active, button:focus { background: #0d47a1; outline: none;}
     #status { display: flex; align-items: center; gap: 8px; font-size: 1em; }
     #status .material-icons { font-size: 1.2em;}
@@ -49,11 +48,7 @@
   <div class="container">
     <div id="sidebar">
         <div class="controls">
-          <div class="axis-controls">
-            <label><input type="checkbox" id="cbX" checked> X</label>
-            <label><input type="checkbox" id="cbY" checked> Y</label>
-            <label><input type="checkbox" id="cbZ" checked> Z</label>
-          </div>
+          
           <div class="button-column">
             <button id="startBtn"><span class="material-icons">play_arrow</span></button>
             <button id="stopBtn" disabled><span class="material-icons">stop</span></button>
@@ -68,6 +63,11 @@
         <label>A: <input type="number" id="cursorAInput"></label>
         <label>B: <input type="number" id="cursorBInput"></label>
       </div>
+	  <div class="axis-controls">
+            <label><input type="checkbox" id="cbX" checked> X</label>
+            <label><input type="checkbox" id="cbY" checked> Y</label>
+            <label><input type="checkbox" id="cbZ" checked> Z</label>
+          </div>
     </div>
     <div id="chart-container">
       <canvas id="accChart" ></canvas>
