@@ -11,10 +11,10 @@ WebSocketsServer webSocket = WebSocketsServer(81);
 
 // ==== MPU6050 ====
 const uint8_t MPU6050SlaveAddress = 0x68;
-float AccelX, AccelY, AccelZ;
+int16_t AccelX, AccelY, AccelZ;
 unsigned long OffsetT = 0;
 volatile bool START = false;
-const unsigned long SAMPLE_INTERVAL = 10; // 10 ms interval (100 Hz)
+const unsigned long SAMPLE_INTERVAL = 2; // 10 ms interval (100 Hz)
 unsigned long lastSampleTime = 0;
 bool sendX = true, sendY = true, sendZ = true;
 
@@ -27,7 +27,7 @@ int trimOffset = 0;
 //#define PIN_START  D2   // Décommente si tu as un bouton/barrière sur une broche
 
 void setup() {
-  Serial.begin(115200);
+  //Serial.begin(115200);
 
   // WiFi AP mode (modifie si tu veux station)
   WiFi.mode(WIFI_AP);
@@ -48,7 +48,7 @@ void setup() {
   // Déclencheur physique
   //pinMode(PIN_START, INPUT_PULLUP);
 
-  Serial.println("Pret sur 192.168.4.1:81");
+  //Serial.println("Pret sur 192.168.4.1:81");
 }
 
 void loop() {
@@ -63,9 +63,9 @@ void loop() {
 
         char msg[64];
       int len = snprintf(msg, sizeof(msg), "%lu;", cycle);
-      if(sendX) len += snprintf(msg+len, sizeof(msg)-len, "%.3f;", AccelX);
-      if(sendY) len += snprintf(msg+len, sizeof(msg)-len, "%.3f;", AccelY);
-      if(sendZ) len += snprintf(msg+len, sizeof(msg)-len, "%.3f;", AccelZ);
+      if(sendX) len += snprintf(msg+len, sizeof(msg)-len, "%d;", AccelX);
+      if(sendY) len += snprintf(msg+len, sizeof(msg)-len, "%d;", AccelY);
+      if(sendZ) len += snprintf(msg+len, sizeof(msg)-len, "%d;", AccelZ);
       len += snprintf(msg+len, sizeof(msg)-len, "\n");
       webSocket.sendTXT(0, msg, len);
     }
@@ -80,7 +80,7 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length
   if(type == WStype_TEXT){
     String msg = String((char*)payload);
     msg.trim();
-    Serial.print("Recu WS: "); Serial.println(msg);
+    //Serial.print("Recu WS: "); Serial.println(msg);
     if(msg.startsWith("start")){
       sendX = sendY = sendZ = false;
       if(msg.startsWith("start:")){
@@ -93,11 +93,11 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length
       }
       START = true;
       OffsetT = millis();
-      Serial.println("DEBUT MESURE");
+      //Serial.println("DEBUT MESURE");
     }
     else if(msg == "stop"){
       START = false;
-      Serial.println("ARRET MESURE");
+      //Serial.println("ARRET MESURE");
     }
     else if(msg.startsWith("servo:")){
       int angle = msg.substring(6).toInt();
@@ -122,10 +122,7 @@ void I2C_Write(uint8_t dev, uint8_t reg, uint8_t data){
 void Read_RawValue(uint8_t dev){
   Wire.beginTransmission(dev); Wire.write(0x3B); Wire.endTransmission(false);
   Wire.requestFrom(dev, (size_t)6, true);
-  int16_t x = (Wire.read()<<8)|Wire.read();
-  int16_t y = (Wire.read()<<8)|Wire.read();
-  int16_t z = (Wire.read()<<8)|Wire.read();
-  AccelX = (float)x/16384.0; // Conversion G
-  AccelY = (float)y/16384.0;
-  AccelZ = (float)z/16384.0;
+  AccelX = (Wire.read() << 8) | Wire.read();
+  AccelY = (Wire.read() << 8) | Wire.read();
+  AccelZ = (Wire.read() << 8) | Wire.read();
 }
