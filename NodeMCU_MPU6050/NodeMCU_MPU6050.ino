@@ -13,6 +13,8 @@ const uint8_t MPU6050SlaveAddress = 0x68;
 float AccelX, AccelY, AccelZ;
 unsigned long OffsetT = 0;
 volatile bool START = false;
+const unsigned long SAMPLE_INTERVAL = 10; // 10 ms interval (100 Hz)
+unsigned long lastSampleTime = 0;
 
 // ==== Déclencheur physique ====
 //#define PIN_START  D2   // Décommente si tu as un bouton/barrière sur une broche
@@ -41,16 +43,18 @@ void setup() {
 void loop() {
   webSocket.loop();
 
-  if (START) {
-    unsigned long cycle = millis() - OffsetT;
-    Read_RawValue(MPU6050SlaveAddress);
+    if (START) {
+    unsigned long now = millis();
+    if (now - lastSampleTime >= SAMPLE_INTERVAL) {
+      lastSampleTime = now;
+      unsigned long cycle = now - OffsetT;
+      Read_RawValue(MPU6050SlaveAddress);
 
-    char msg[48];
-    int len = snprintf(msg, sizeof(msg), "%lu;%.3f;%.3f;%.3f;\n", cycle, AccelX, AccelY, AccelZ);
-    //int len = snprintf(msg, sizeof(msg), "%lu;%.3f;\n", cycle, AccelX);
-    webSocket.sendTXT(0, msg, len);
-
-    delay(100); // 100Hz, à ajuster
+      char msg[48];
+      int len = snprintf(msg, sizeof(msg), "%lu;%.3f;%.3f;%.3f;\n", cycle, AccelX, AccelY, AccelZ);
+      //int len = snprintf(msg, sizeof(msg), "%lu;%.3f;\n", cycle, AccelX);
+      webSocket.sendTXT(0, msg, len);
+    }
   }
 
   yield();
