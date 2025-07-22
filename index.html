@@ -15,6 +15,9 @@
     #sidebar { display: flex; flex-direction: column; gap: 16px; flex-basis: 260px; }
     #sidebar button { width: 100%; }
     .controls { display: flex; gap: 16px; margin-bottom: 22px; }
+    .axis-controls { display:flex; gap:16px; }
+    .button-column,
+    .servo-controls { display:flex; flex-direction:column; gap:16px; }
     .servo-controls label { display:flex; align-items:center; gap:8px; height: 40px; padding: auto; }
     button { padding: auto; font-size: 1.1em; height: 40px; background: #1976d2; color: #fff; border: none; border-radius: 25px; cursor: pointer; transition: background .2s; box-shadow: 0 2px 4px rgba(0,0,0,0.07); }
     button:active, button:focus { background: #0d47a1; outline: none;}
@@ -42,16 +45,20 @@
   </div>
   <div class="container">
     <div id="sidebar">
-      <div class="controls">
-        <label><input type="checkbox" id="cbX" checked> X</label>
-        <label><input type="checkbox" id="cbY" checked> Y</label>
-        <label><input type="checkbox" id="cbZ" checked> Z</label>
-        <button id="startBtn"><span class="material-icons">play_arrow</span> Démarrer</button>
-        <button id="stopBtn" disabled><span class="material-icons">stop</span> Arrêter</button>
-      </div>
+        <div class="controls">
+          <div class="axis-controls">
+            <label><input type="checkbox" id="cbX" checked> X</label>
+            <label><input type="checkbox" id="cbY" checked> Y</label>
+            <label><input type="checkbox" id="cbZ" checked> Z</label>
+          </div>
+          <div class="button-column">
+            <button id="startBtn"><span class="material-icons">play_arrow</span></button>
+            <button id="stopBtn" disabled><span class="material-icons">stop</span></button>
+          </div>
+        </div>
       <div class="controls servo-controls">
-        <button id="servo45Btn">Servo 45&deg;</button>
-        <button id="servo0Btn">Servo 0&deg;</button>
+        <button id="servo45Btn">45&deg;</button>
+        <button id="servo0Btn">0&deg;</button>
         <label>Trim: <input type="range" id="trimSlider" min="-30" max="30" value="0" step="1"><span id="trimVal">0&deg;</span></label>
       </div>
     </div>
