@@ -13,7 +13,8 @@
     header { background: #1976d2; color: #fff; padding: 16px; font-size: 1.2em; display: flex; align-items: center; justify-content: center;}
     .container { display: flex; flex-direction: column; align-items: center; margin: 28px 0;}
     .controls { display: flex; gap: 16px; margin-bottom: 22px;}
-    button { padding: 12px 22px; font-size: 1.1em; background: #1976d2; color: #fff; border: none; border-radius: 25px; cursor: pointer; transition: background .2s; box-shadow: 0 2px 4px rgba(0,0,0,0.07);}
+    .servo-controls label { display:flex; align-items:center; gap:8px; height: 40px; padding: auto;}
+    button { padding: auto; font-size: 1.1em; height: 40px; background: #1976d2; color: #fff; border: none; border-radius: 25px; cursor: pointer; transition: background .2s; box-shadow: 0 2px 4px rgba(0,0,0,0.07);}
     button:active, button:focus { background: #0d47a1; outline: none;}
     #status { display: flex; align-items: center; gap: 8px; font-size: 1em; margin-bottom: 16px;}
     #status .material-icons { font-size: 1.2em;}
@@ -32,8 +33,16 @@
       <span id="status-text">Connexion...</span>
     </div>
     <div class="controls">
-      <button id="startBtn"><span class="material-icons">play_arrow</span> Démarrer</button>
-      <button id="stopBtn" disabled><span class="material-icons">stop</span> Arrêter</button>
+		  <label><input type="checkbox" id="cbX" checked> X</label>
+		  <label><input type="checkbox" id="cbY" checked> Y</label>
+		  <label><input type="checkbox" id="cbZ" checked> Z</label>
+		  <button id="startBtn"><span class="material-icons">play_arrow</span> Démarrer</button>
+		  <button id="stopBtn" disabled><span class="material-icons">stop</span> Arrêter</button>
+		  <div class="controls servo-controls">
+			<button id="servo45Btn">Servo 45&deg;</button>
+			<button id="servo0Btn">Servo 0&deg;</button>
+			<label>Trim: <input type="range" id="trimSlider" min="-30" max="30" value="0" step="1"><span id="trimVal">0&deg;</span></label>
+		  </div>
     </div>
     <div id="chart-container">
       <canvas id="accChart" ></canvas>
@@ -45,7 +54,6 @@
 
 <script>
 let ws;
-let accChart;
 let chartData = {
   labels: [],
   datasets: [
@@ -55,6 +63,7 @@ let chartData = {
   ]
 };
 let maxPoints = 150;
+let selectedAxes = "XYZ";
 
 // ==== Curseurs de sélection ====
 let cursorA = null, cursorB = null;
@@ -96,18 +105,24 @@ function connectWS() {
       let d = evt.data.trim();
       if (d.includes(";")) {
         let parts = d.replace('\n','').split(';');
-        if (parts.length >= 4) {
-          addData(Number(parts[0]), Number(parts[1]), Number(parts[2]), Number(parts[3]));
+        if (parts.length >= selectedAxes.length + 1) {
+          let t = Number(parts[0]);
+          let values = parts.slice(1, 1 + selectedAxes.length).map(Number);
+          addData(t, values);
         }
       }
     } catch(e) { /* ignore parse errors */ }
   };
 }
-function addData(t, x, y, z) {
+function addData(t, values) {
   chartData.labels.push(t);
-  chartData.datasets[0].data.push(x);
-  chartData.datasets[1].data.push(y);
-  chartData.datasets[2].data.push(z);
+  let map = {X:null, Y:null, Z:null};
+  for(let i=0;i<selectedAxes.length;i++) {
+    map[selectedAxes[i]] = values[i];
+  }
+  chartData.datasets[0].data.push(map.X);
+  chartData.datasets[1].data.push(map.Y);
+  chartData.datasets[2].data.push(map.Z);
   if (chartData.labels.length > maxPoints) {
     chartData.labels.shift();
     chartData.datasets.forEach(ds => ds.data.shift());
@@ -127,10 +142,12 @@ function setCursorsToExtremes() {
 function updateAnnotations() {
   accChart.options.plugins.annotation.annotations = {};
   if (cursorA !== null) {
-    accChart.options.plugins.annotation.annotations.cursorA = {
+accChart.options.plugins.annotation.annotations.cursorA = {
       type: 'line',
       xMin: cursorA,
       xMax: cursorA,
+      yMin: accChart.scales.y.min,
+      yMax: accChart.scales.y.max,
       borderColor: '#fbc02d',
       borderWidth: 2,
       label: {
@@ -146,6 +163,8 @@ function updateAnnotations() {
       type: 'line',
       xMin: cursorB,
       xMax: cursorB,
+      yMin: accChart.scales.y.min,
+      yMax: accChart.scales.y.max,
       borderColor: '#43a047',
       borderWidth: 2,
       label: {
@@ -204,9 +223,19 @@ window.onload = function() {
   });
   connectWS();
   document.getElementById('startBtn').onclick = function() {
-    ws && ws.send('start');
+    const cbX = document.getElementById('cbX');
+    const cbY = document.getElementById('cbY');
+    const cbZ = document.getElementById('cbZ');
+    selectedAxes = '';
+    if(cbX.checked) selectedAxes += 'X';
+    if(cbY.checked) selectedAxes += 'Y';
+    if(cbZ.checked) selectedAxes += 'Z';
+    ws && ws.send('start:' + selectedAxes);
     this.disabled = true;
     document.getElementById('stopBtn').disabled = false;
+    chartData.datasets[0].hidden = !cbX.checked;
+    chartData.datasets[1].hidden = !cbY.checked;
+    chartData.datasets[2].hidden = !cbZ.checked;
     // Efface curseurs/mesure
     cursorA = null; cursorB = null; draggingCursor = null;
     updateAnnotations(); updateTimeResult();
@@ -217,6 +246,18 @@ window.onload = function() {
     document.getElementById('startBtn').disabled = false;
     // Place les curseurs automatiquement sur les extrémités après arrêt
     setTimeout(setCursorsToExtremes, 400); // délai pour laisser finir la réception
+  };
+  document.getElementById('servo45Btn').onclick = function() {
+    ws && ws.send('servo:45');
+  };
+  document.getElementById('servo0Btn').onclick = function() {
+    ws && ws.send('servo:0');
+  };
+  const trimSlider = document.getElementById('trimSlider');
+  const trimVal = document.getElementById('trimVal');
+  trimSlider.oninput = function() {
+    trimVal.textContent = this.value + '\u00b0';
+    ws && ws.send('trim:' + this.value);
   };
 };
 
