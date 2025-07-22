@@ -67,6 +67,18 @@ let maxPoints = 150;
 let selectedAxes = "XYZ";
 const LSB_TO_G = 1/16384;
 
+let accChart;
+let updateScheduled = false;
+function scheduleChartUpdate() {
+  if (!updateScheduled) {
+    updateScheduled = true;
+    requestAnimationFrame(() => {
+      accChart.update('none');
+      updateScheduled = false;
+    });
+  }
+}
+
 // ==== Curseurs de sélection ====
 let cursorA = null, cursorB = null;
 let draggingCursor = null; // 'A' ou 'B'
@@ -131,7 +143,7 @@ function addData(t, values) {
       chartData.datasets[i].data.shift();
     }
   }
-  accChart.update('none');
+  scheduleChartUpdate();
 }
 
 function setCursorsToExtremes() {
