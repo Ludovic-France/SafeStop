@@ -44,6 +44,7 @@
     <div id="time-result">Sélectionnez deux points sur le graphique pour mesurer le temps.</div>
     <div id="dist1600"></div>
     <div id="dist2000"></div>
+    <div id="speed"></div>
   </div>
   <div class="container">
     <div id="sidebar">
@@ -90,6 +91,10 @@ const MAX_RECORDING_POINTS = 10000; // limit to avoid excessive memory use
 let maxDisplayPoints = 150; // points kept visible during acquisition
 let selectedAxes = "XYZ";
 const LSB_TO_G = 1/16384;
+
+// ==== Calcul de la vitesse ====
+let velX = 0, velY = 0, velZ = 0;
+let lastVelTime = null;
 
 let accChart;
 Chart.register(ChartZoom);
@@ -165,6 +170,15 @@ function addData(t, values) {
   for(let i=0;i<selectedAxes.length;i++) {
     map[selectedAxes[i]] = values[i] * LSB_TO_G;
   }
+  if(lastVelTime !== null) {
+    const dt = (t - lastVelTime) / 1000;
+    if(map.X !== null) velX += map.X * 9.81 * dt;
+    if(map.Y !== null) velY += map.Y * 9.81 * dt;
+    if(map.Z !== null) velZ += map.Z * 9.81 * dt;
+    const speed = Math.sqrt(velX*velX + velY*velY + velZ*velZ);
+    updateSpeed(speed);
+  }
+  lastVelTime = t;
   fullData.datasets[0].push(map.X);
   fullData.datasets[1].push(map.Y);
   fullData.datasets[2].push(map.Z);
@@ -227,6 +241,11 @@ function updateTimeResult() {
     document.getElementById('dist1600').textContent = "";
     document.getElementById('dist2000').textContent = "";
   }
+}
+
+function updateSpeed(v) {
+  document.getElementById('speed').textContent =
+      'Vitesse : ' + v.toFixed(2) + ' m/s';
 }
 
 function showFullData() {
@@ -295,6 +314,7 @@ window.onload = function() {
     }
   });
   connectWS();
+  updateSpeed(0);
   document.getElementById('startBtn').onclick = function() {
     const cbX = document.getElementById('cbX');
     const cbY = document.getElementById('cbY');
@@ -315,6 +335,9 @@ window.onload = function() {
     chartData.datasets.forEach(d => d.data = []);
     // Efface curseurs/mesure
     cursorA = null; cursorB = null; draggingCursor = null;
+    velX = velY = velZ = 0;
+    lastVelTime = null;
+    updateSpeed(0);
     userMoved = false;
     updateAnnotations(); updateTimeResult();
   };
@@ -322,6 +345,7 @@ window.onload = function() {
     ws && ws.send('stop');
     this.disabled = true;
     document.getElementById('startBtn').disabled = false;
+    lastVelTime = null;
     // Place les curseurs automatiquement sur les extrémités après arrêt
     setTimeout(() => { showFullData(); setCursorsToExtremes(); }, 400); // délai pour laisser finir la réception
   };
